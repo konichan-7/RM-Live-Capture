@@ -1,9 +1,11 @@
 from pathlib import Path
 
+BASE_DIR = Path(__file__).resolve().parent
+
 port = 10398
 
-save_dir = Path('out/data')
-mp4_dir = Path('out/mp4')
+save_dir = BASE_DIR / 'out' / 'data'
+mp4_dir = BASE_DIR / 'out' / 'mp4'
 auto_convert_to_mp4 = True
 
 max_error_count = 20

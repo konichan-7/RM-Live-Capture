@@ -24,10 +24,12 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 manager = Manager()
+import os
 path_regex = re.compile(r"^\d+_\d+_\d+_\d+\.m3u8$")
 path_f_regex = re.compile(r"^\d+_\d+_\d+_\d+-\d+\.ts$")
 
-staticFiles = StaticFiles(directory='static')
+static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+staticFiles = StaticFiles(directory=static_dir)
 app.mount("/static", staticFiles, name="static")
 
 
