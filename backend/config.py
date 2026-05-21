@@ -2,8 +2,9 @@ from pathlib import Path
 
 port = 10398
 
-save_dir = Path('z:/rmuc record/data')
-mp4_dir = Path('z:/rmuc record/out')
+save_dir = Path('out/data')
+mp4_dir = Path('out/mp4')
+auto_convert_to_mp4 = True
 
 max_error_count = 20
 headers = {
@@ -40,7 +41,7 @@ live_info_url = "https://pro-robomasters-hz-n5i3.oss-cn-hangzhou.aliyuncs.com/li
 
 reqs_json = Path("reqs.json")
 
-basic_security = True
+basic_security = "off"
 username = b"nuaanuaa"
 password = b"ckyfckyf"
 

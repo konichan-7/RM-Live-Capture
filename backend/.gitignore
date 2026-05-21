@@ -2,3 +2,6 @@ reqs.json
 *.log
 cookie.json
 data
+.venv/
+__pycache__/
+DS_Store

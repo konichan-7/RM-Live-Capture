@@ -33,13 +33,16 @@ class StreamModal extends Component {
                 open={this.state.open}
                 onOpenChange={(open) => {
                     this.setState({open})
-                    this.reject()
+                    if (!open) {
+                        this.reject()
+                    }
                 }}
                 onFinish={async (values) => {
                     if (!(values.quality in this.state.live.streams[values.role])) {
                         message.error("Quality not available");
                         return false;
                     }
+                    this.setState({open: false})
                     this.resolve(values);
                     return true;
                 }}

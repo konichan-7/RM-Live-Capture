@@ -105,7 +105,7 @@ class Index extends Component {
     async addDownloader() {
         const req = await this.streamModal.current?.open(this.state.live);
         if (req) {
-            await axios.get(`/api/manager/add?role=${req.role}&quality=${req.quality}`);
+            await axios.get("/api/manager/add", { params: req });
             await this.refresh();
         }
     }
@@ -113,7 +113,7 @@ class Index extends Component {
     async editDownloader(role: string) {
         const req = await this.streamModal.current?.open(this.state.live, role);
         if (req) {
-            await axios.get(`/api/manager/update?role=${req.role}&quality=${req.quality}`);
+            await axios.get("/api/manager/update", { params: req });
             await this.refresh();
         }
     }
@@ -125,7 +125,7 @@ class Index extends Component {
             content: 'Do you want to delete this Downloader?',
             icon: <ExclamationCircleFilled />,
             async onOk() {
-                await axios.get(`/api/manager/delete?role=${role}`);
+                await axios.get("/api/manager/delete", { params: { role } });
                 await that.refresh();
             },
         });

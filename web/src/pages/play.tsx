@@ -34,7 +34,7 @@ function Play() {
                     Go
                 </Button>
             </Space.Compact>
-            <Video src={`/api/video/file/${fn}`} style={{width: "100%", height: "100%"}}/>
+            <Video src={fn ? `/api/video/download/${fn}` : ""} style={{width: "100%", height: "100%"}}/>
         </Space>
     );
 }
