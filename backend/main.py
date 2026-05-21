@@ -1,11 +1,12 @@
 import re
 import secrets
 import base64
+import webbrowser
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Path, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, FileResponse
 
 import config
 from logger import setUvicornLogger
@@ -84,7 +85,7 @@ async def check_auth(request: Request, call_next):
 
 @app.get("/")
 async def root():
-    return RedirectResponse(url="/static/index.html")
+    return FileResponse(os.path.join(static_dir, 'index.html'))
 
 
 @app.get("/api/manager")
@@ -185,4 +186,12 @@ async def download_video(request: Request, file_name: str = Path()):
 
 if __name__ == '__main__':
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=config.port)
+    import threading
+    import time
+
+    def open_browser():
+        time.sleep(1.5)
+        webbrowser.open(f"http://127.0.0.1:{config.port}")
+
+    threading.Thread(target=open_browser, daemon=True).start()
+    uvicorn.run(app, host="0.0.0.0", port=config.port)

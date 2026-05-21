@@ -7,6 +7,7 @@ port = 10398
 save_dir = BASE_DIR / 'out' / 'data'
 mp4_dir = BASE_DIR / 'out' / 'mp4'
 auto_convert_to_mp4 = True
+auto_start_recording = False
 
 max_error_count = 20
 headers = {

@@ -41,35 +41,38 @@ class ManagerInfo(BaseModel):
 
 
 async def get_round_info() -> RoundInfo:
-    async with aiohttp.ClientSession(headers=config.oss_headers, timeout=aiohttp.ClientTimeout(total=10)) as session:
-        async with session.get(config.round_info_url) as response:
-            _data = await response.json()
-            info = RoundInfo(red="Null", blue="Null", round=0, id=0, status="IDLE")
-            for data in _data:
-                data = data['currentMatch']
-                if data is None:
-                    continue
-                round = data['round']
-                if round is None:
-                    round = 0
-                if data['redSide']['player'] is None:
+    info = RoundInfo(red="Null", blue="Null", round=0, id=0, status="IDLE")
+    try:
+        async with aiohttp.ClientSession(headers=config.oss_headers, timeout=aiohttp.ClientTimeout(total=10)) as session:
+            async with session.get(config.round_info_url) as response:
+                _data = await response.json()
+                for data in _data:
+                    data = data['currentMatch']
+                    if data is None:
+                        continue
+                    round = data['round']
+                    if round is None:
+                        round = 0
+                    if data['redSide']['player'] is None:
+                        info = RoundInfo(**{
+                            "red": data['redSideId'],
+                            "blue": data['blueSideId'],
+                            "round": round,
+                            "id": data['id'],
+                            "status": data['status']
+                        })
+                        break
                     info = RoundInfo(**{
-                        "red": data['redSideId'],
-                        "blue": data['blueSideId'],
+                        "red": data['redSide']['player']['team']['collegeName'],
+                        "blue": data['blueSide']['player']['team']['collegeName'],
                         "round": round,
                         "id": data['id'],
                         "status": data['status']
                     })
                     break
-                info = RoundInfo(**{
-                    "red": data['redSide']['player']['team']['collegeName'],
-                    "blue": data['blueSide']['player']['team']['collegeName'],
-                    "round": round,
-                    "id": data['id'],
-                    "status": data['status']
-                })
-                break
-            return info
+    except Exception as e:
+        getLogger("Manager", "INFO").error(f"Get round info failed: {e}")
+    return info
 
 
 def live_string_to_dict(live_string: List) -> Dict[str, str]:
@@ -106,38 +109,41 @@ def check_date_position(dates: List[str]) -> int:
 @cached(TTLCache(1, 5))
 async def get_live_info() -> LiveInfo:
     default_event_index = 0
-    async with aiohttp.ClientSession(headers=config.oss_headers, timeout=aiohttp.ClientTimeout(total=10)) as session:
-        async with session.get(config.live_info_url) as response:
-            data = json.loads(await response.text())['eventData']
-            info = {
-                "live": False,
-                "streams": {}
-            }
-            zoneName = 'Not Got'
-            ok = False
-            for live_info in data:
-                if live_info['liveState'] != 1 or live_info['matchState'] != 1:
-                    continue
-                ok = True
-                info['live'] = True
-                zoneName = live_info['zoneName']
-                convert_live_info(live_info, info)
-            if not ok:
-                live_info = data[default_event_index]
-                min_date_diff = 99999
-                for _live_info in data:
-                    date_diff = check_date_position(_live_info['zoneDate'])
-                    if date_diff == 0:
-                        break
-                    if date_diff == -1:
+    info = {
+        "live": False,
+        "streams": {}
+    }
+    try:
+        async with aiohttp.ClientSession(headers=config.oss_headers, timeout=aiohttp.ClientTimeout(total=10)) as session:
+            async with session.get(config.live_info_url) as response:
+                data = json.loads(await response.text())['eventData']
+                zoneName = 'Not Got'
+                ok = False
+                for live_info in data:
+                    if live_info['liveState'] != 1 or live_info['matchState'] != 1:
                         continue
-                    if date_diff < min_date_diff:
-                        min_date_diff = date_diff
-                        live_info = _live_info
-                convert_live_info(live_info, info)
-                zoneName = live_info['zoneName']
-            print(f"Got {zoneName} Live Info")
-            return LiveInfo(**info)
+                    ok = True
+                    info['live'] = True
+                    zoneName = live_info['zoneName']
+                    convert_live_info(live_info, info)
+                if not ok:
+                    live_info = data[default_event_index]
+                    min_date_diff = 99999
+                    for _live_info in data:
+                        date_diff = check_date_position(_live_info['zoneDate'])
+                        if date_diff == 0:
+                            break
+                        if date_diff == -1:
+                            continue
+                        if date_diff < min_date_diff:
+                            min_date_diff = date_diff
+                            live_info = _live_info
+                    convert_live_info(live_info, info)
+                    zoneName = live_info['zoneName']
+                print(f"Got {zoneName} Live Info")
+    except Exception as e:
+        getLogger("Manager", "INFO").error(f"Get live info failed: {e}")
+    return LiveInfo(**info)
 
 
 class Manager:
@@ -202,6 +208,11 @@ class Manager:
                     self.downloaders[req.role].url = stream
             elif req.role not in self.downloaders:
                 self.downloaders[req.role] = None
+
+        if not config.auto_start_recording:
+            self.round = round_
+            self.job.reschedule(trigger="interval", seconds=10 if live_info.live else 120)
+            return
 
         if not self.manual_mode:
             if not (live_info.live or round_.status != 'IDLE'):
