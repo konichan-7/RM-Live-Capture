@@ -27,6 +27,6 @@
 3. 进入web目录，执行`yarn && yarn build`构建前端项目
 4. 将`web/dist`目录中的所有文件拷贝到`backend/static`目录
 5. 进入backend目录，执行`pip install -r requirements.txt`安装后端依赖
-6. 编辑`config.py`修改相关配置（特别注意修改HTTP Basic Security的账号密码）
+6. 编辑`config.py`修改相关配置（当前版本默认已关闭HTTP Basic Security，直接访问即可，无需密码）
 7. 运行`main.py`启动程序
 * 可选：执行`backend/video.py`可以将历史`.m3u8`文件批量封装为`.mp4`（该过程不会重新编解码，速度很快，不占用CPU）
