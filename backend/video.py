@@ -26,24 +26,28 @@ class VideoFilterProps(BaseModel):
     sort: Dict[str, str] = {}
 
 
+import re
+
 def get_video_info(file_name: str) -> Union[Video, None]:
     title = "Null Vs Null"
     duration = 0.
-    with (config.save_dir / file_name).open('r') as f:
+    with (config.save_dir / file_name).open('r', encoding='utf-8') as f:
         for line in f.readlines():
             if line.startswith("#TITLE:"):
                 title = line.replace("#TITLE:", "").strip()
             if line.startswith("#EXTINF:"):
                 duration += float(line.split(":")[1].split(",")[0])
-    items = title.split(" ")
-    if len(items) != 6:
+    
+    match = re.match(r"^(.*?) Vs (.*?) (.*?) R(\d+) (\d+)$", title)
+    if not match:
         return None
+        
     return Video(
         title=title,
-        red=items[0],
-        blue=items[2],
-        role=items[3],
-        round=int(items[4][1:]),
+        red=match.group(1),
+        blue=match.group(2),
+        role=match.group(3),
+        round=int(match.group(4)),
         duration=duration,
         file_name=file_name
     )
@@ -77,6 +81,8 @@ def filter_video_list(current: int, pageSize: int, **kwargs):
 
 
 async def convert_to_mp4(_video: Video):
+    config.mp4_dir.mkdir(parents=True, exist_ok=True)
+
     def run():
         import ffmpeg
         ffmpeg.input(str(config.save_dir / _video.file_name)).output(
@@ -88,11 +94,14 @@ async def convert_to_mp4(_video: Video):
 
 
 def delete_file(_video: Video):
+    mp4 = config.mp4_dir / f"{_video.title}.mp4"
+    if mp4.exists():
+        mp4.unlink()
     with open(config.save_dir / _video.file_name, 'r', encoding="utf-8") as f:
         lines = f.readlines()
         for i in range(len(lines)):
             if lines[i].startswith("#EXTINF"):
-                file = config.save_dir / lines[i + 1]
+                file = config.save_dir / lines[i + 1].strip()
                 if file.exists():
                     file.unlink()
     (config.save_dir / _video.file_name).unlink()
@@ -100,5 +109,8 @@ def delete_file(_video: Video):
 
 
 if __name__ == '__main__':
-    for _video in get_video_list():
-        convert_to_mp4(_video)
+    async def main():
+        for _video in get_video_list():
+            await convert_to_mp4(_video)
+
+    asyncio.run(main())

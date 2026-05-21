@@ -27,6 +27,8 @@ def load_m3u8_file(m3u8_path):
     return m3u8_obj
 
 
+import re
+
 def m3u8_obj_to_str(m3u8_obj, old_path: Path):
     title = "Null Vs Null"
     with old_path.open('r', encoding='utf-8') as f:
@@ -35,8 +37,8 @@ def m3u8_obj_to_str(m3u8_obj, old_path: Path):
                 title = line.replace("#TITLE:", "").strip()
                 break
 
-    items = title.split(" ")
-    role = items[3]
+    match = re.match(r"^(.*?) Vs (.*?) (.*?) R(\d+) (\d+)$", title)
+    role = match.group(3) if match else "Unknown"
 
     lines = ['#EXTM3U', '#EXT-X-TARGETDURATION:4', '#EXT-X-PLAYLIST-TYPE:VOD',
              f'#TITLE:南京航空航天大学 Vs 中国石油大学 {role} R2 {str(int(time.time()))}']

@@ -200,6 +200,8 @@ class Manager:
                     self.downloaders[req.role] = Downloader(req.role, stream, self.scheduler)
                 else:
                     self.downloaders[req.role].url = stream
+            elif req.role not in self.downloaders:
+                self.downloaders[req.role] = None
 
         if not self.manual_mode:
             if not (live_info.live or round_.status != 'IDLE'):
@@ -269,8 +271,8 @@ class Manager:
 
     def _save_reqs(self):
         reqs = [it.dict() for it in self.reqs]
-        with open(config.reqs_json, "w") as f:
-            json.dump(reqs, f)
+        with open(config.reqs_json, "w", encoding="utf-8") as f:
+            json.dump(reqs, f, ensure_ascii=False)
 
     async def delete_req(self, role: str):
         downloader = self.downloaders.get(role, None)
@@ -288,6 +290,9 @@ class Manager:
         self.reqs.append(req)
         self._save_reqs()
         await self.scan()
+        downloader = self.downloaders.get(req.role)
+        if self.manual_mode and downloader is not None and downloader.cid == -1:
+            await downloader.start(RoundInfo(red="红方", blue="蓝方", round=1, id=99999, status="STARTED"))
 
     async def update_req(self, role: str, quality: str):
         req = LiveStreamReq(role=role, quality=quality)

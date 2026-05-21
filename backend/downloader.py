@@ -96,7 +96,7 @@ class Downloader:
             self.job = None
         while self.processing:
             await asyncio.sleep(1)
-        await self._save()
+        await self._save(finalize=True)
         self.segments = []
 
     async def close(self):
@@ -105,10 +105,13 @@ class Downloader:
         await self.session.close()
         self.logger.info(f"Close {self.name}")
 
-    async def _save(self):
+    async def _save(self, finalize: bool = False):
         if not self.segments:
             return
-        with open(config.save_dir / f"{self.id}_{self.cid}_{self.rid}_{int(self.start_time)}.m3u8", "w", encoding="utf-8") as f:
+        file_name = f"{self.id}_{self.cid}_{self.rid}_{int(self.start_time)}.m3u8"
+        config.save_dir.mkdir(parents=True, exist_ok=True)
+        config.mp4_dir.mkdir(parents=True, exist_ok=True)
+        with open(config.save_dir / file_name, "w", encoding="utf-8") as f:
             f.write("#EXTM3U\n")
             f.write("#EXT-X-TARGETDURATION:4\n")
             f.write("#EXT-X-PLAYLIST-TYPE:VOD\n")
@@ -123,6 +126,22 @@ class Downloader:
                 last_id = id_
             f.write("#EXT-X-ENDLIST\n")
         self.logger.debug(f"Save {self.name} {self.title}")
+        if finalize and config.auto_convert_to_mp4:
+            await self._convert_to_mp4(file_name)
+
+    async def _convert_to_mp4(self, file_name: str):
+        try:
+            from video import convert_to_mp4, get_video_info
+
+            video = get_video_info(file_name)
+            if video is None:
+                self.logger.error(f"Cannot parse video info for {file_name}")
+                return
+            self.logger.info(f"Converting {video.title} to MP4")
+            await convert_to_mp4(video)
+            self.logger.info(f"Converted {video.title} to MP4")
+        except Exception as e:
+            self.logger.error(f"Convert to MP4 failed: {e}")
 
     async def _get_m3u8_info(self):
         if self.processing:
@@ -174,6 +193,7 @@ class Downloader:
             return
         self.logger.debug(f"Downloading {segment.uri}")
         async with self.session.get(f"https://rtmp.djicdn.com/robomaster/{segment.uri}") as response:
+            config.save_dir.mkdir(parents=True, exist_ok=True)
             filename = config.save_dir / self._get_segment_name(segment)
             with open(filename, "wb") as f:
                 f.write(await response.read())
@@ -204,4 +224,3 @@ if __name__ == "__main__":
         scheduler.shutdown()
 
     asyncio.run(main())
-

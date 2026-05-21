@@ -1,20 +1,17 @@
 import re
 import secrets
 import base64
-from typing import List
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Path, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, RedirectResponse
-from bilibili_api.login_func import QrCodeLoginEvents
 
 import config
 from logger import setUvicornLogger
 from range_response import RangeResponse
 from manager import Manager, get_live_info, LiveStreamReq
 from video import filter_video_list, VideoFilterProps, get_video_info, convert_to_mp4, delete_file
-from bilibili_helper import login, check, get_username, upload_video
 
 
 @asynccontextmanager
@@ -47,7 +44,7 @@ def check_permission(info):
 
 
 admin_path = [
-    '/api/video/delete', '/api/video/convert', '/api/video/upload', '/api/bili', '/api/manager/delete',
+    '/api/video/delete', '/api/video/convert', '/api/manager/delete',
     '/api/manager/add', '/api/manager/update', '/api/manager/start', '/api/manager/end'
 ]
 
@@ -139,9 +136,12 @@ async def convert_video(file_name: str = Path()):
         return JSONResponse({"code": -1, "msg": "Illegal file name"}, 400)
     if not (config.save_dir / file_name).exists():
         return JSONResponse({"code": 2, "msg": "M3U8 file not exist."}, 404)
-    mp4 = config.mp4_dir / f"{get_video_info(file_name).title}.mp4"
+    video = get_video_info(file_name)
+    if video is None:
+        return JSONResponse({"code": 3, "msg": "Invalid video info."}, 400)
+    mp4 = config.mp4_dir / f"{video.title}.mp4"
     if not mp4.exists():
-        await convert_to_mp4(get_video_info(file_name))
+        await convert_to_mp4(video)
     return {"code": 0}
 
 
@@ -173,40 +173,14 @@ async def download_video(request: Request, file_name: str = Path()):
         return JSONResponse({"code": -1, "msg": "Illegal file name"}, 400)
     if not (config.save_dir / file_name).exists():
         return JSONResponse({"code": 2, "msg": "M3U8 file not exist."}, 404)
-    mp4 = config.mp4_dir / f"{get_video_info(file_name).title}.mp4"
+    video = get_video_info(file_name)
+    if video is None:
+        return JSONResponse({"code": 3, "msg": "Invalid video info."}, 400)
+    mp4 = config.mp4_dir / f"{video.title}.mp4"
     if not mp4.exists():
-        return JSONResponse({"code": 1, "msg": "MP4 file not created"}, 404)
+        await convert_to_mp4(video)
     return RangeResponse(request, str(mp4), "video/mp4")
-
-
-@app.get("/api/bili/login")
-async def login_bili():
-    qr64, key = await login()
-    return {"code": 0, "qr": qr64, "key": key}
-
-
-@app.get("/api/bili/check")
-async def check_bili(key: str):
-    status = check(key)
-    if status == QrCodeLoginEvents.DONE:
-        return {"code": 1000}
-    elif status == QrCodeLoginEvents.TIMEOUT:
-        return {"code": 1, "msg": "QrCode Timeout"}
-    else:
-        return {"code": 0, "status": status}
-
-
-@app.get("/api/bili/username")
-async def get_bili_username():
-    return {"code": 0, "msg": await get_username()}
-
-
-@app.post("/api/bili/upload")
-async def upload_bili(title: str, videos: List[str]):
-    upload_video(title, [get_video_info(video).title for video in videos])
-    return JSONResponse({"code": 0}, 200)
-
 
 if __name__ == '__main__':
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=config.port)
+    uvicorn.run(app, host="127.0.0.1", port=config.port)
