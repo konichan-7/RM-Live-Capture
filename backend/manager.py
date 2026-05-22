@@ -14,6 +14,7 @@ from cachetools import TTLCache
 import config
 from downloader import Downloader, RoundInfo
 from logger import getLogger
+from video import convert_missing_mp4
 
 
 class LiveInfo(BaseModel):
@@ -193,6 +194,9 @@ class Manager:
         for downloader in self.downloaders.values():
             if downloader is not None:
                 await downloader.end()
+        errors = await convert_missing_mp4()
+        for error in errors:
+            self.logger.error(f"Convert missing MP4 failed: {error}")
         self.manual_mode = False
 
     async def _scan(self):

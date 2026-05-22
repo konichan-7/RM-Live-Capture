@@ -14,7 +14,7 @@
 * 通过拉取赛事流程JSON实现自动切片与自动启动和停止
 
 ### 部署
-1. 安装必要依赖：Python、Ffmpeg
+1. 安装必要依赖：Python（系统已安装Ffmpeg时会优先使用；未安装时会尝试使用Python依赖提供的Ffmpeg）
 2. 从release中下载最新版本`RM_Live_Capture.tar.gz`并解压
 3. 进入backend目录，执行`pip install -r requirements.txt`安装后端依赖
 4. 编辑`config.py`修改相关配置（特别注意修改HTTP Basic Security的账号密码）
@@ -22,7 +22,7 @@
 6. 运行`main.py`启动程序
 
 ### 编译部署（不推荐）
-1. 安装必要依赖：NodeJs、Yarn、Python、Ffmpeg
+1. 安装必要依赖：NodeJs、Yarn、Python（系统已安装Ffmpeg时会优先使用；未安装时会尝试使用Python依赖提供的Ffmpeg）
 2. Clone项目到本地并进入项目文件夹
 3. 进入web目录，执行`yarn && yarn build`构建前端项目
 4. 将`web/dist`目录中的所有文件拷贝到`backend/static`目录

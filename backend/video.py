@@ -1,5 +1,6 @@
 from typing import List, Union, Dict
 import asyncio
+import shutil
 
 from pydantic import BaseModel
 import cachetools.func
@@ -85,12 +86,32 @@ async def convert_to_mp4(_video: Video):
 
     def run():
         import ffmpeg
+        cmd = shutil.which("ffmpeg")
+        if cmd is None:
+            try:
+                import imageio_ffmpeg
+                cmd = imageio_ffmpeg.get_ffmpeg_exe()
+            except Exception:
+                cmd = "ffmpeg"
         ffmpeg.input(str(config.save_dir / _video.file_name)).output(
             str(config.mp4_dir / f"{_video.title}.mp4"),
             acodec="copy", vcodec="copy"
-        ).run(overwrite_output=True)
+        ).run(cmd=cmd, overwrite_output=True)
 
     await asyncio.to_thread(run)
+
+
+async def convert_missing_mp4() -> List[str]:
+    errors = []
+    for _video in get_video_list():
+        mp4 = config.mp4_dir / f"{_video.title}.mp4"
+        if mp4.exists():
+            continue
+        try:
+            await convert_to_mp4(_video)
+        except Exception as e:
+            errors.append(f"{_video.file_name}: {e}")
+    return errors
 
 
 def delete_file(_video: Video):
@@ -110,7 +131,8 @@ def delete_file(_video: Video):
 
 if __name__ == '__main__':
     async def main():
-        for _video in get_video_list():
-            await convert_to_mp4(_video)
+        errors = await convert_missing_mp4()
+        for error in errors:
+            print(error)
 
     asyncio.run(main())

@@ -7,3 +7,4 @@ colorlog
 cachetools
 asyncache
 ffmpeg-python
+imageio-ffmpeg
