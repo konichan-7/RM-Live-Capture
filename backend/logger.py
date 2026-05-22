@@ -3,7 +3,10 @@ from logging import handlers
 
 import colorlog
 
-fh = handlers.RotatingFileHandler("manager.log", mode="a", maxBytes=100*1024, backupCount=3)
+import config
+
+
+fh = handlers.RotatingFileHandler(config.BASE_DIR / "manager.log", mode="a", maxBytes=100*1024, backupCount=3)
 fh_formatter = logging.Formatter(
     "%(asctime)s - %(levelname)s - %(name)s - %(message)s"
 )
@@ -58,7 +61,7 @@ def setUvicornLogger(log_level):
     )
     ch.setFormatter(formatter)
     ch.setLevel(log_level)
-    _fh = handlers.RotatingFileHandler("api.log", mode="a", maxBytes=100*1024, backupCount=2)
+    _fh = handlers.RotatingFileHandler(config.BASE_DIR / "api.log", mode="a", maxBytes=100*1024, backupCount=2)
     _fh.setFormatter(fh_formatter)
 
     for handler in logger.handlers:

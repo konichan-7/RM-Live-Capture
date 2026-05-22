@@ -2,6 +2,7 @@ import re
 import secrets
 import base64
 import os
+import platform
 import subprocess
 import webbrowser
 from contextlib import asynccontextmanager
@@ -190,11 +191,20 @@ if __name__ == '__main__':
     import threading
     import time
 
+    def open_chrome(url: str):
+        system = platform.system()
+        if system == "Darwin":
+            subprocess.run(["open", "-a", "Google Chrome", url], check=True)
+        elif system == "Windows":
+            subprocess.run(["cmd", "/c", "start", "", "chrome", url], check=True)
+        else:
+            subprocess.run(["google-chrome", url], check=True)
+
     def open_browser():
         time.sleep(1.5)
         url = f"http://127.0.0.1:{config.port}"
         try:
-            subprocess.run(["open", "-a", "Google Chrome", url], check=True)
+            open_chrome(url)
         except Exception:
             webbrowser.open(url)
 

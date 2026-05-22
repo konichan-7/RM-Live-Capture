@@ -42,7 +42,7 @@ oss_headers = {
 round_info_url = "https://pro-robomasters-hz-n5i3.oss-cn-hangzhou.aliyuncs.com/live_json/current_and_next_matches.json"
 live_info_url = "https://pro-robomasters-hz-n5i3.oss-cn-hangzhou.aliyuncs.com/live_json/live_game_info.json"
 
-reqs_json = Path("reqs.json")
+reqs_json = BASE_DIR / "reqs.json"
 
 basic_security = "off"
 username = b"nuaanuaa"
