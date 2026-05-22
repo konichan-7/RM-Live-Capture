@@ -1,6 +1,8 @@
 import re
 import secrets
 import base64
+import os
+import subprocess
 import webbrowser
 from contextlib import asynccontextmanager
 
@@ -25,7 +27,6 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 manager = Manager()
-import os
 path_regex = re.compile(r"^\d+_\d+_\d+_\d+\.m3u8$")
 path_f_regex = re.compile(r"^\d+_\d+_\d+_\d+-\d+\.ts$")
 
@@ -191,7 +192,11 @@ if __name__ == '__main__':
 
     def open_browser():
         time.sleep(1.5)
-        webbrowser.open(f"http://127.0.0.1:{config.port}")
+        url = f"http://127.0.0.1:{config.port}"
+        try:
+            subprocess.run(["open", "-a", "Google Chrome", url], check=True)
+        except Exception:
+            webbrowser.open(url)
 
     threading.Thread(target=open_browser, daemon=True).start()
     uvicorn.run(app, host="0.0.0.0", port=config.port)
